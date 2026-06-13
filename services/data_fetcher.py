@@ -3,6 +3,9 @@ import requests
 import pandas as pd
 import asyncio
 from datetime import datetime
+import urllib.request
+import urllib.parse
+import xml.etree.ElementTree as ET
 
 class DataFetcher:
     def __init__(self):
@@ -14,6 +17,19 @@ class DataFetcher:
         if stock_code.upper() in ["TAIEX", "^TWII", "大盤"]:
             return "IX0001"
         return stock_code.replace(".TW", "")
+
+    def get_recent_news(self, stock_code: str) -> list:
+        try:
+            # 搜尋最近7天的新聞
+            q = urllib.parse.quote(f"{stock_code} 台股 when:7d")
+            url = f"https://news.google.com/rss/search?q={q}&hl=zh-TW&gl=TW&ceid=TW:zh-Hant"
+            req = urllib.request.urlopen(url, timeout=5)
+            root = ET.fromstring(req.read())
+            news_list = [item.find('title').text for item in root.findall('.//item')][:5]
+            return news_list
+        except Exception as e:
+            print(f"Failed to fetch news: {e}")
+            return []
 
     async def get_daily_data(self, stock_code: str, period="3mo") -> dict:
         """獲取日K與技術指標"""
@@ -54,9 +70,10 @@ class DataFetcher:
             # 取最後一筆資料
             last_row = df.iloc[-1]
             
-            # 轉換近5日資料
             recent_5_days = df[['date', 'Close']].tail(5).to_dict('records')
             recent_5_str = ", ".join([f"{row['date'].strftime('%Y-%m-%d')}: {row['Close']:.2f}" for row in recent_5_days])
+            
+            recent_news = self.get_recent_news(stock_code)
             
             return {
                 "stock_code": stock_code,
@@ -67,7 +84,8 @@ class DataFetcher:
                 "ma_20": round(last_row['MA20'], 2) if not pd.isna(last_row['MA20']) else None,
                 "ma_60": round(last_row['MA60'], 2) if not pd.isna(last_row['MA60']) else None,
                 "rsi_14": round(last_row['RSI'], 2) if not pd.isna(last_row['RSI']) else None,
-                "price_history_json": recent_5_str
+                "price_history_json": recent_5_str,
+                "recent_news": recent_news
             }
             
         return await asyncio.to_thread(fetch)
@@ -86,10 +104,13 @@ class DataFetcher:
             current_price = data.get('closePrice', 0)
             change_pct = data.get('changePercent', 0)
             
+            recent_news = self.get_recent_news(stock_code)
+            
             return {
                 "stock_code": stock_code,
                 "current_price": round(current_price, 2),
-                "change_pct": round(change_pct, 2)
+                "change_pct": round(change_pct, 2),
+                "recent_news": recent_news
             }
             
         return await asyncio.to_thread(fetch)

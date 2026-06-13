@@ -15,10 +15,11 @@ SYSTEM_PROMPT = """
 你的專長是透過 K 線型態、價量關係以及技術指標來判讀市場情緒，並提供客觀、紀律嚴明的投資策略建議。
 
 【分析準則】
-1. 必須關注「價量關係」。
-2. 必須判斷趨勢方向與重要支撐/壓力位。
-3. 策略建議必須包含明確的「操作方向」(觀望、分批建倉、突破追價、嚴格停損)。
-4. 語氣需專業、冷靜。
+1. 必須關注「價量關係」與「技術指標」。
+2. 必須綜合考量傳入的「近期新聞消息」，判斷市場情緒與潛在利多/利空。
+3. 判斷趨勢方向與重要支撐/壓力位。
+4. 策略建議必須包含明確的「操作方向」(觀望、分批建倉、突破追價、嚴格停損)。
+5. 語氣需專業、冷靜。
 
 【輸出格式要求】
 請務必以純 JSON 格式輸出，不要包含 Markdown 語法或任何其他說明文字，格式如下：
@@ -60,8 +61,10 @@ class StrategyEngine:
   - 20日均線 (20MA): {data.get('ma_20')}
   - 60日均線 (60MA): {data.get('ma_60')}
   - RSI (14日): {data.get('rsi_14')}
+- 近期市場新聞：
+{chr(10).join(data.get('recent_news', [])) if data.get('recent_news') else '無最新新聞'}
   
-請依照 System Prompt 要求的 JSON 格式回傳。
+請綜合技術面與消息面，依照 System Prompt 要求的 JSON 格式回傳。
 """
         if self.use_system_prompt_in_user:
             user_prompt = SYSTEM_PROMPT + "\n\n" + user_prompt
@@ -88,7 +91,10 @@ class StrategyEngine:
 目前價格：{data.get('current_price')}
 漲跌幅：{data.get('change_pct')}%
 
-請給予緊急應變策略。
+近期市場新聞參考：
+{chr(10).join(data.get('recent_news', [])) if data.get('recent_news') else '無最新新聞'}
+
+請綜合波動情況與近期新聞，給予緊急應變策略。
 輸出格式要求(純JSON):
 {{
   "trend_analysis": "針對此異常波動的快速判讀",
