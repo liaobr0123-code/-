@@ -53,6 +53,7 @@ def handle_message(event):
         add_match = re.match(r'^(?:新增追蹤|新增|追蹤|\+)\s*(.+)$', user_message, re.IGNORECASE)
         del_match = re.match(r'^(?:刪除追蹤|刪除|取消|\-)\s*(.+)$', user_message, re.IGNORECASE)
         email_match = re.match(r'^(?:設定信箱|信箱|email)\s*(.+)$', user_message, re.IGNORECASE)
+        query_match = re.match(r'^(?:查詢|分析)\s*(.+)$', user_message, re.IGNORECASE)
 
         if add_match:
             stocks_str = add_match.group(1)
