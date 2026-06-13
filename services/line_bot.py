@@ -139,6 +139,11 @@ def handle_message(event):
                     msg += f"🔥 動作：{strategy.get('action', '無')}"
                     if 'risk_warning' in strategy:
                         msg += f"\n⚠️ 風險：{strategy.get('risk_warning')}"
+                    
+                    if data.get('recent_news'):
+                        msg += f"\n\n📰 【近期重要新聞】"
+                        for news_title in data['recent_news'][:3]:
+                            msg += f"\n- {news_title}"
                         
                     await send_push_message(user_id, msg)
                 except Exception as e:

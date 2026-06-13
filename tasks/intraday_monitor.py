@@ -36,6 +36,11 @@ async def intraday_monitor():
                         
                         alert_msg = f"⚠️ 【緊急警報】{stock_code} 劇烈波動 ({data['change_pct']}%)\nAI 應變策略：{strategy.get('advice', '無')}"
                         
+                        if data.get('recent_news'):
+                            alert_msg += f"\n\n📰 【近期重要新聞】"
+                            for news_title in data['recent_news'][:3]:
+                                alert_msg += f"\n- {news_title}"
+                        
                         notify_tasks = []
                         for u in users:
                             if stock_code in (u.tracking_stocks or "") or stock_code == "TAIEX":
