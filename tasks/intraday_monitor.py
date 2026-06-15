@@ -1,5 +1,5 @@
 import asyncio
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 from database.models import SessionLocal, User
 from services.data_fetcher import data_fetcher
 from services.llm_strategy import strategy_engine
@@ -10,8 +10,11 @@ alert_cache = {}
 
 async def intraday_monitor():
     print("啟動盤中監控模組...")
+    # 設定台灣時區 (UTC+8)
+    tw_tz = timezone(timedelta(hours=8))
+    
     while True:
-        now = datetime.now()
+        now = datetime.now(tw_tz)
         # 僅在交易時間執行 (台灣時間 09:00 - 13:30)，週一到週五
         if 9 <= now.hour <= 13 and now.weekday() < 5:
             db = SessionLocal()
@@ -51,8 +54,10 @@ async def intraday_monitor():
                         await asyncio.gather(*notify_tasks)
                         alert_cache[cache_key] = True 
                         
-                tasks = [check_stock(s) for s in all_tracking]
-                await asyncio.gather(*tasks)
+                # 依序檢查每檔股票，避免同時呼叫太多次 Gemini API 導致 429 錯誤
+                for s in all_tracking:
+                    await check_stock(s)
+                    await asyncio.sleep(2) # 每次檢查間隔 2 秒，降低 API 請求頻率
             except Exception as e:
                 print(f"Intraday Monitor Error: {e}")
             finally:
