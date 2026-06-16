@@ -18,13 +18,13 @@ async def process_user(user: User):
     
     if user.tracking_stocks:
         stocks = user.tracking_stocks.split(",")
-        async def fetch_and_analyze(stock_code):
-            data = await data_fetcher.get_daily_data(stock_code)
-            strategy = await strategy_engine.generate_strategy(data)
-            return stock_code, data, strategy
-            
-        tasks = [fetch_and_analyze(s) for s in stocks if s]
-        results = await asyncio.gather(*tasks)
+        results = []
+        for s in stocks:
+            if s:
+                data = await data_fetcher.get_daily_data(s)
+                strategy = await strategy_engine.generate_strategy(data)
+                results.append((s, data, strategy))
+                await asyncio.sleep(2) # 降低 API 請求頻率，避免 429 錯誤
         
         for stock_code, data, strategy in results:
             if not data:
@@ -52,8 +52,9 @@ async def daily_morning_routine():
     db = SessionLocal()
     try:
         users = db.query(User).all()
-        tasks = [process_user(u) for u in users]
-        await asyncio.gather(*tasks)
+        for u in users:
+            await process_user(u)
+            await asyncio.sleep(2)
     except Exception as e:
         print(f"Daily Job Error: {e}")
     finally:
